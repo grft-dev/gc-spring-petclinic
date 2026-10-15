@@ -21,7 +21,10 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.LoggerFactoryFriend;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.samples.petclinic.ClinicGraftBoot;
 import org.springframework.data.domain.Sort;
+import org.springframework.samples.petclinic.vet.Vet;
+import org.springframework.samples.petclinic.vet.VetRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,12 +35,19 @@ public class Clinic {
 
 	private final OwnerRepository owners;
 
-	Clinic(OwnerRepository owners) {
+	private final VetRepository vets;
+
+	Clinic(OwnerRepository owners, VetRepository vets) {
 		this.owners = owners;
+		this.vets = vets;
 	}
 
 	public static OwnerDto[] listOwners() {
 		return service().listOwnersInternal();
+	}
+
+	public static VetDto[] listVets() {
+		return service().listVetsInternal();
 	}
 
 	public static OwnerDto getOwner(int id) {
@@ -63,9 +73,7 @@ public class Clinic {
 				current = bean;
 				if (current == null) {
 					preferLogbackOverGatewayNop();
-					SpringApplication application = new SpringApplication(ClinicGraftBoot.class);
-					application.setAdditionalProfiles("graft");
-					ConfigurableApplicationContext context = application.run();
+					ConfigurableApplicationContext context = SpringApplication.run(ClinicGraftBoot.class);
 					current = context.getBean(Clinic.class);
 					bean = current;
 				}
@@ -88,6 +96,11 @@ public class Clinic {
 	@Transactional(readOnly = true)
 	OwnerDto[] listOwnersInternal() {
 		return this.owners.findAll(Sort.by("id")).stream().map(Clinic::toOwner).toArray(OwnerDto[]::new);
+	}
+
+	@Transactional(readOnly = true)
+	VetDto[] listVetsInternal() {
+		return this.vets.findAll().stream().map(Clinic::toVet).toArray(VetDto[]::new);
 	}
 
 	@Transactional(readOnly = true)
@@ -151,6 +164,15 @@ public class Clinic {
 		dto.setName(pet.getName());
 		dto.setBirthDate(pet.getBirthDate().toString());
 		dto.setType(pet.getType().getName());
+		return dto;
+	}
+
+	private static VetDto toVet(Vet vet) {
+		VetDto dto = new VetDto();
+		dto.setId(vet.getId());
+		dto.setFirstName(vet.getFirstName());
+		dto.setLastName(vet.getLastName());
+		dto.setSpecialties(vet.getSpecialties().stream().map(specialty -> specialty.getName()).toArray(String[]::new));
 		return dto;
 	}
 

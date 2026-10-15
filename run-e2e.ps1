@@ -1,7 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
-docker compose --profile graft up --build -d
+docker compose up --build -d
 
 $guid = $null
 for ($i = 0; $i -lt 60; $i++) {

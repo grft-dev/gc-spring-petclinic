@@ -18,13 +18,12 @@ package org.springframework.samples.petclinic.owner;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.samples.petclinic.ClinicGraftBoot;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest(classes = ClinicGraftBoot.class)
-@ActiveProfiles("graft")
 class ClinicGraftTest {
 
 	@Autowired
@@ -59,6 +58,17 @@ class ClinicGraftTest {
 		assertThat(created.getDescription()).isEqualTo("graft checkup");
 		assertThat(created.getDate()).isEqualTo("2026-10-05");
 		assertThat(this.clinic.getVisitsInternal(1, 1)).extracting(VisitDto::getDescription).contains("graft checkup");
+	}
+
+	@Test
+	void lindaDouglasHasDentistryAndSurgery() {
+		VetDto[] vets = this.clinic.listVetsInternal();
+		assertThat(vets).filteredOn(vet -> vet.getLastName().equals("Douglas"))
+			.singleElement()
+			.satisfies(vet -> {
+				assertThat(vet.getFirstName()).isEqualTo("Linda");
+				assertThat(vet.getSpecialties()).containsExactlyInAnyOrder("dentistry", "surgery");
+			});
 	}
 
 	@Test

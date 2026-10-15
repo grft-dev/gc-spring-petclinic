@@ -4,7 +4,7 @@ WORKDIR /usr/app
 
 COPY . /usr/app/
 
-RUN mvn -Pgraft-host package -q -DskipTests
+RUN mvn package -q -DskipTests
 
 FROM maven:3.9-eclipse-temurin-21
 

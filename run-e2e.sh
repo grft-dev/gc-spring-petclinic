@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-docker compose --profile graft up --build -d
+docker compose up --build -d
 
 guid=""
 for _ in $(seq 1 60); do
