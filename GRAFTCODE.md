@@ -65,7 +65,7 @@ Birth dates and visit dates stay `LocalDate` on the entities. `addVisit` returns
 
 ## src/main/java against origin/main
 
-`git diff --numstat origin/main -- src/main/java` on this working tree (not committed) is 132 insertions and 968 deletions. Untracked `ClinicHost.java` adds 62 lines. Insertions are **194**, down from **408** on the previous `HEAD` of this branch (that commit still contains the DTO copies). `git diff --numstat origin/main...HEAD` stays at 408 until these edits are committed.
+`git diff --numstat origin/main...HEAD -- src/main/java` at `d0cced3` is **194** insertions and **968** deletions. The previous commit on this branch (`82922e6`) had 408 insertions in the same path, including the DTO copies.
 
 | miejsce | linie na main | linie po zmianie | co zniknęło z kodu aplikacji |
 | --- | ---: | ---: | --- |
