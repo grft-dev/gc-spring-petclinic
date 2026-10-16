@@ -13,48 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springframework.samples.petclinic.owner;
+package org.springframework.samples.petclinic.vet;
 
-public class PetDto {
+import java.util.List;
 
-	private int id;
+public final class SpecialtyNames {
 
-	private String name;
-
-	private String birthDate;
-
-	private String type;
-
-	public int getId() {
-		return this.id;
+	private SpecialtyNames() {
 	}
 
-	public void setId(int id) {
-		this.id = id;
-	}
-
-	public String getName() {
-		return this.name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
-	}
-
-	public String getBirthDate() {
-		return this.birthDate;
-	}
-
-	public void setBirthDate(String birthDate) {
-		this.birthDate = birthDate;
-	}
-
-	public String getType() {
-		return this.type;
-	}
-
-	public void setType(String type) {
-		this.type = type;
+	public static List<String> of(Vet vet) {
+		return vet.getSpecialties().stream().map(Specialty::getName).toList();
 	}
 
 }

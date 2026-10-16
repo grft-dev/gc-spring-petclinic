@@ -23,7 +23,7 @@ Wait for the Maven feed:
 curl http://localhost:8090/maven
 ```
 
-The graft host JAR is `org.springframework.samples:petclinic-clinic:1.0.0`. Vision should expose `Clinic`, `OwnerDto`, `PetDto`, `VisitDto`, and `VetDto`. Compose starts Postgres and points the host at it (`SPRING_PROFILES_ACTIVE=postgres`). MySQL is also available on port 3306. In-process tests stay on H2.
+The graft host JAR is `org.springframework.samples:petclinic-clinic:1.0.0`. Vision should expose `Clinic` and the domain types the facade returns (`Owner`, `Pet`, `Visit`, `Vet`). It can also see the public superclasses (`BaseEntity`, `Person`, `NamedEntity`), the public Spring Data repository interfaces, and `ClinicHost`. `ClinicHost` is public only so `owner.Clinic` can start the package-private boot class. `PetType` and `Specialty` are package-private. Compose starts Postgres and points the host at it (`SPRING_PROFILES_ACTIVE=postgres`). MySQL is also available on port 3306. In-process tests stay on H2.
 
 ## Smoke (seed data)
 
@@ -48,22 +48,45 @@ Cross-boundary (Docker + JVM graft client):
 
 On Linux/macOS: `./run-e2e.sh`
 
-E2E uses **`GraftConfig.stateless = false`** (required for DTO getters through the graft; see product notes on `stateless: true`).
-
-The JVM graft client may fail on **array** return types (`getPets`, `getVisits`) with `NoSuchElementException` in generated `GraftUtils.getUnderlyingArrayType` (defect #4 in [`petclinic-graftcode-defects.md`](../petclinic-graftcode-defects.md)). The reference monolith uses npm for full e2e; this repo keeps JVM tests as the cross-boundary check for scalar calls and error propagation.
+`./mvnw test` calls the public static facade (`Clinic.getOwner`, `getPets`, `getVisits`, `addVisit`, `listVets`) and does not start the gateway. `src/graft-test` still imports the previous generated DTO client, so the `graft-e2e` profile does not compile against this host. Gateway transfer of `Owner`, `Pet`, `Visit`, `Vet`, `List`, and `LocalDate` was not re-run.
 
 ## Graft API
 
 ```text
-Clinic.listOwners()
-Clinic.listVets()
-Clinic.getOwner(int id)
-Clinic.getPets(int ownerId)
-Clinic.getVisits(int ownerId, int petId)
-Clinic.addVisit(int ownerId, int petId, String date, String description)
+Clinic.listOwners()                         -> List<Owner>
+Clinic.listVets()                           -> Collection<Vet>
+Clinic.getOwner(int id)                     -> Owner
+Clinic.getPets(int ownerId)                 -> List<Pet>
+Clinic.getVisits(int ownerId, int petId)    -> Collection<Visit>
+Clinic.addVisit(int ownerId, int petId, LocalDate date, String description) -> Visit
 ```
 
-Visit dates on `VisitDto` are ISO-8601 strings.
+Birth dates and visit dates stay `LocalDate` on the entities. `addVisit` returns the same `Visit` instance passed to `Owner.addVisit` after `saveAndFlush`.
+
+## src/main/java against origin/main
+
+`git diff --numstat origin/main -- src/main/java` on this working tree (not committed) is 132 insertions and 968 deletions. Untracked `ClinicHost.java` adds 62 lines. Insertions are **194**, down from **408** on the previous `HEAD` of this branch (that commit still contains the DTO copies). `git diff --numstat origin/main...HEAD` stays at 408 until these edits are committed.
+
+| miejsce | linie na main | linie po zmianie | co zniknęło z kodu aplikacji |
+| --- | ---: | ---: | --- |
+| `PetClinicApplication.java` | 36 | 0 | klasa `main` i start aplikacji web |
+| `PetClinicRuntimeHints.java` | 38 | 0 | podpowiedzi AOT dla zasobów web |
+| `package-info.java` → `ClinicGraftBoot.java` | 16 | 23 | opis pakietu; została klasa startu bez publicznych metod |
+| `system/package-info.java` → `owner/ClinicException.java` | 16 | 24 | opis pakietu; został komunikat błędu kliniki |
+| `owner/Clinic.java` | 0 | 114 | nie było na main; fasada woła repozytoria i `Owner.addVisit`, bez kopii pól i bez drugiego odczytu wizyty |
+| `ClinicHost.java` | 0 | 62 | nie było na main; start Springa przy pierwszym wywołaniu i `preferLogbackOverGatewayNop` |
+| `owner/OwnerController.java` | 188 | 0 | HTTP właścicieli |
+| `owner/PetController.java` | 207 | 0 | HTTP zwierząt |
+| `owner/VisitController.java` | 114 | 0 | HTTP wizyt |
+| `vet/VetController.java` | 81 | 0 | HTTP weterynarzy |
+| `system/WelcomeController.java` | 30 | 0 | strona powitalna |
+| `system/CrashController.java` | 37 | 0 | endpoint błędu |
+| `system/WebConfiguration.java` | 60 | 0 | konfiguracja MVC |
+| `owner/PetTypeFormatter.java` | 62 | 0 | formatter formularza |
+| `owner/PetValidator.java` | 69 | 0 | walidacja formularza zwierzęcia |
+| `vet/Vets.java` | 43 | 0 | opakowanie JSON listy weterynarzy |
+| `owner/PetType.java` | 30 | 30 | modyfikator `public`; encja nie jest zwrotem fasady |
+| `vet/Specialty.java` | 32 | 32 | modyfikator `public`; encja nie jest zwrotem fasady |
 
 ## Build host JAR locally
 

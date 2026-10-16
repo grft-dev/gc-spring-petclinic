@@ -15,65 +15,64 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.samples.petclinic.ClinicGraftBoot;
+import org.springframework.samples.petclinic.vet.SpecialtyNames;
+import org.springframework.samples.petclinic.vet.Vet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(classes = ClinicGraftBoot.class)
 class ClinicGraftTest {
-
-	@Autowired
-	private Clinic clinic;
 
 	@Test
 	void firstOwnerIsGeorgeFranklin() {
-		OwnerDto owner = this.clinic.getOwnerInternal(1);
+		Owner owner = Clinic.getOwner(1);
 		assertThat(owner.getFirstName()).isEqualTo("George");
 		assertThat(owner.getLastName()).isEqualTo("Franklin");
 	}
 
 	@Test
 	void georgeHasLeoTheCat() {
-		PetDto[] pets = this.clinic.getPetsInternal(1);
+		List<Pet> pets = Clinic.getPets(1);
 		assertThat(pets).hasSize(1);
-		assertThat(pets[0].getName()).isEqualTo("Leo");
-		assertThat(pets[0].getType()).isEqualTo("cat");
-		assertThat(pets[0].getBirthDate()).isEqualTo("2010-09-07");
+		assertThat(pets.get(0).getName()).isEqualTo("Leo");
+		assertThat(pets.get(0).getType().getName()).isEqualTo("cat");
+		assertThat(pets.get(0).getBirthDate()).isEqualTo(LocalDate.of(2010, 9, 7));
 	}
 
 	@Test
 	void seededVisitIsSamanthasRabiesShot() {
-		VisitDto[] visits = this.clinic.getVisitsInternal(6, 7);
-		assertThat(visits).extracting(VisitDto::getDescription).contains("rabies shot");
-		assertThat(visits).extracting(VisitDto::getDate).contains("2013-01-01");
+		Collection<Visit> visits = Clinic.getVisits(6, 7);
+		assertThat(visits).extracting(Visit::getDescription).contains("rabies shot");
+		assertThat(visits).extracting(Visit::getDate).contains(LocalDate.of(2013, 1, 1));
 	}
 
 	@Test
 	void addVisitDelegatesToOwner() {
-		VisitDto created = this.clinic.addVisitInternal(1, 1, "2026-10-05", "graft checkup");
+		Visit created = Clinic.addVisit(1, 1, LocalDate.of(2026, 10, 5), "graft checkup");
 		assertThat(created.getDescription()).isEqualTo("graft checkup");
-		assertThat(created.getDate()).isEqualTo("2026-10-05");
-		assertThat(this.clinic.getVisitsInternal(1, 1)).extracting(VisitDto::getDescription).contains("graft checkup");
+		assertThat(created.getDate()).isEqualTo(LocalDate.of(2026, 10, 5));
+		assertThat(Clinic.getVisits(1, 1)).extracting(Visit::getDescription).contains("graft checkup");
 	}
 
 	@Test
 	void lindaDouglasHasDentistryAndSurgery() {
-		VetDto[] vets = this.clinic.listVetsInternal();
+		Collection<Vet> vets = Clinic.listVets();
 		assertThat(vets).filteredOn(vet -> vet.getLastName().equals("Douglas"))
 			.singleElement()
 			.satisfies(vet -> {
 				assertThat(vet.getFirstName()).isEqualTo("Linda");
-				assertThat(vet.getSpecialties()).containsExactlyInAnyOrder("dentistry", "surgery");
+				assertThat(SpecialtyNames.of(vet)).containsExactlyInAnyOrder("dentistry", "surgery");
 			});
 	}
 
 	@Test
 	void missingOwnerKeepsTheMessage() {
-		assertThatThrownBy(() -> this.clinic.getOwnerInternal(999)).isInstanceOf(ClinicException.class)
+		assertThatThrownBy(() -> Clinic.getOwner(999)).isInstanceOf(ClinicException.class)
 			.hasMessage("Owner with id 999 not found.");
 	}
 
